@@ -1,0 +1,22 @@
+# Compiler
+CC = gcc
+
+# Source files
+SRC = ./Src/Main.c ./Src/BlockDevice.c
+
+# Output directory
+OUT_DIR = ./Build
+
+# Output executable
+OUT_EXE = $(OUT_DIR)/Main
+
+# Default target
+all: $(OUT_EXE)
+
+# Build the executable
+$(OUT_EXE): $(SRC)
+    $(CC) $(SRC) -o $(OUT_EXE)
+
+# Clean the build directory
+clean:
+    rm -f $(OUT_EXE)
