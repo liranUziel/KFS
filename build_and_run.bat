@@ -4,7 +4,7 @@
 setlocal
 
 :: Define variables
-set SRC=.\Src\Main.c .\Src\BlockDevice.c .\Src\KFS.c
+set SRC=.\Src\Main.c .\Src\BlockDevice.c .\Src\KFS.c .\Src\Terminal.c 
 set OUT_DIR=.\Build
 set OUT_EXE=%OUT_DIR%\Main.exe
 set BLOCK_DEVICE=.\Build\gBlk.bin

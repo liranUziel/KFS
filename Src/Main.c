@@ -1,5 +1,7 @@
 #include "./Headers/BlockDevice.h"
 #include "./Headers/KFS.h"
+#include "./Headers/Terminal.h"
+
 
 int main(int argc, char *argv[])
 {
@@ -15,7 +17,17 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error: failed to create block device\n");
         return 1;
     }
-    
+    format(device);
+    char cmd[256];
+
+    fprintf(stdout, "KFS> ");
+    fscanf(stdin, "%s",cmd);
+    while(strcmp(cmd, "exit") != 0)
+    {
+        dispatch(cmd);
+        fprintf(stdout, "KFS> ");
+        fscanf(stdin, "%s",cmd);
+    } 
     closeBlockDevice(device);
     return 0;
 }

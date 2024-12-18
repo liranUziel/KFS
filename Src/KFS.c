@@ -20,13 +20,15 @@ void format(BlockDevice *device){
     KFS_HEADER header;
     readBlockDevice(device, 0, sizeof(KFS_HEADER), (char*)&header);
     if( strcmp(header.magic, "KFS") == 0 ) {
-        fprintf(stdout, "File system already exists\n");
+        fprintf(stdout, "Loading KFS...\n");
     }else{
+        fprintf(stdout, "Initializing KFS...\n");
         strcpy(header.magic, "KFS");
         header.version = 1;
         writeBlockDevice(device, 0, sizeof(KFS_HEADER), (char*)&header);
     }
 }
+
 
 
 
