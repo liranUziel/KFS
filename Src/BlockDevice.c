@@ -15,7 +15,7 @@ BlockDevice* createBlockDevice(char* blockName,unsigned int size)
         return NULL;
     }
 
-    device->hMapFile = CreateFileMapping(device->hFile, NULL, PAGE_READWRITE, 0, size * sizeof(int), NULL);
+    device->hMapFile = CreateFileMapping(device->hFile, NULL, PAGE_READWRITE, 0, size * sizeof(char), NULL);
     if (device->hMapFile == NULL) {
         fprintf(stderr, "Error: failed to create file mapping\n");
         CloseHandle(device->hFile);

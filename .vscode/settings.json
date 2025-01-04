@@ -1,0 +1,19 @@
+{
+    "files.associations": {
+        "partition.h": "c",
+        "blockdevice.h": "c",
+        "kfs.h": "c",
+        "atomic": "c",
+        "compare": "c",
+        "concepts": "c",
+        "ios": "c",
+        "iterator": "c",
+        "memory": "c",
+        "string": "c",
+        "xiosbase": "c",
+        "xlocnum": "c",
+        "xmemory": "c",
+        "xstring": "c",
+        "xutility": "c"
+    }
+}

@@ -5,6 +5,7 @@
 #include <string.h>
 
 
+//List of commands
 typedef enum CMD_TYPE{
     CMD_EXIT,
     CMD_HELP,
@@ -15,6 +16,8 @@ typedef enum CMD_TYPE{
 extern const char *CMD_STR[];
 
 void printHelp();
+void printKFSLogo();
+void printPizzaLogo();
 void dispatch(char *cmd);
 
 #endif // TERMINAL_H
