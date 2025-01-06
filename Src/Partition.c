@@ -2,7 +2,7 @@
 #include "./Headers/KFS.h"
 
 
-int currentPartition = 0;
+int currentPartitionID = 0;
 int FreeSpace = 0;
 Partition_HEADER header;
 
@@ -10,7 +10,7 @@ Partition_HEADER header;
 void updateStart(PartitionTable** pt){
     for(int i = 0; i < (*pt)->count; i++){
         if(i == 0){
-            (*pt)->partitions[i].addr = sizeof(Partition_HEADER) + sizeof(Partition);
+            (*pt)->partitions[i].addr = sizeof(Partition_HEADER) + sizeof(Partition)*((*pt)->count + 1);
         }else{
             (*pt)->partitions[i].addr = (*pt)->partitions[i-1].addr + (*pt)->partitions[i-1].size;
         }
@@ -31,6 +31,7 @@ void createPartitionTable(PartitionTable** pt, int size){
     strcpy(header.name, "Pizza");
     header.version = 1;
     header.count = 0;
+    header.size = 0;
     FreeSpace = size - sizeof(Partition_HEADER);
     (*pt) = (PartitionTable*)malloc(sizeof(PartitionTable));   
     (*pt)->partitions = (Partition*)malloc(sizeof(Partition));
@@ -42,19 +43,21 @@ Partition createPartition(char* name,unsigned int size){
     Partition p;
     strcpy(p.name, name);
     p.size = size;
+    p.formatted = false;
     return p;
 }
 
 void addPartition(PartitionTable** pt, unsigned int size){
 
     if((*pt)->count == 0){
+        
         // create the first partition
         if(header.size + sizeof(Partition) > size){
             fprintf(stderr,"[addPartition] Error: invalid initial partition size\n");
             return;
         }else{
             Partition p = createPartition("C", size);
-            p.addr = sizeof(Partition_HEADER);
+            p.addr = sizeof(Partition_HEADER) + sizeof(Partition);
             (*pt)->count = 1;
             (*pt)->partitions[0] = p;
             FreeSpace -= sizeof(Partition);
@@ -71,10 +74,9 @@ void addPartition(PartitionTable** pt, unsigned int size){
             }
             char name[2] = {(*pt)->partitions[(*pt)->count-1].name[0] + 1, '\0'};
             Partition p = createPartition(name, size);
-            p.addr = (*pt)->partitions[(*pt)->count-1].addr + (*pt)->partitions[(*pt)->count-1].size;
-            updateStart(pt);
             (*pt)->partitions[(*pt)->count] = p;
             (*pt)->count++;
+            updateStart(pt);
             header.count++;
             FreeSpace -= sizeof(Partition);
         }
@@ -90,6 +92,7 @@ void printPartitionTable(PartitionTable* pt){
 }
     
 void writePartitionTable(BlockDevice* device, PartitionTable* pt){
+    header.size = pt->size * sizeof(Partition);
     writeBlockDevice(device, 0, sizeof(header), (char*)&header);
     writeBlockDevice(device, sizeof(header), header.size, (char*)pt->partitions);
 }
@@ -102,20 +105,16 @@ void readPartitionTable(BlockDevice* device, PartitionTable** pt){
         fprintf(stdout,"Initializing PiPs...\n");
         return;
     }
-
     *pt = (PartitionTable*)malloc(sizeof(PartitionTable));
     (*pt)->partitions = (Partition*)malloc(header.size);
     (*pt)->size = header.size / sizeof(Partition);
-    (*pt)->count = (*pt)->size;
-    
+    (*pt)->count = header.count;
     readBlockDevice(device, sizeof(header), header.size, (char*)(*pt)->partitions);
-    currentPartition = 0;
-
+    currentPartitionID = 0;
 }
 
 void PizzaPartitionSystem(PartitionTable **pt, BlockDevice *device){
     fprintf(stdout,"\033[0m\033[1mP\033[22mizza \033[1mP\033[22martition \033[1mS\033[22mystem\033[0m\n");
-    // printPartitionTable(*pt);
     fprintf(stdout,"Commands:\n");
     fprintf(stdout,"c: Create a new partition\n");
     fprintf(stdout,"d: Delete a partition\n");
@@ -124,83 +123,104 @@ void PizzaPartitionSystem(PartitionTable **pt, BlockDevice *device){
     fprintf(stdout,"q: Quit\n");
     char option;
     int mode = 0;
+    int totalPartitions = 0;
+    currentPartitionID = 0;
+    bool allFormatted = true;
+    char name;
     while(1){
         fprintf(stdout,"$> ");
         scanf("%c", &option);
         getchar();
         switch(option){
-            case 'c':
-                if(mode == 0){
-                    fprintf(stdout,"Enter the size of the partition: ");
-                    int size;
-                    scanf("%d", &size);
-                    getchar();
-                    addPartition(pt, size);
-                    mode = 1;
-                    printPartitionTable(*pt);
-                }else{
-                    fprintf(stdout,"Can't create new partition, please format the last one first\n");
-                }
+            case 'c':            
+                fprintf(stdout,"Enter the size of the partition: ");
+                int size;
+                scanf("%d", &size);
+                getchar();
+                addPartition(pt, size);
+                printPartitionTable(*pt);
+                totalPartitions++;
                 break;
             case 'd':
-                if(mode ==0){
-                    if((*pt)->count == 1){
+                if(totalPartitions < 2){
                         fprintf(stderr,"Error: Cannot delete the last partition\n");
-                    }else{
-                        fprintf(stdout,"Enter Partition to delete: ");
-                        char name;
-                        scanf("%c", &name);
-                        getchar();
-                        for(int i = 0; i < (*pt)->count; i++){
-                            if((*pt)->partitions[i].name[0] == name){
-                                for(int j = i; j < (*pt)->count-1; j++){
-                                    (*pt)->partitions[j] = (*pt)->partitions[j+1];
-                                }
-                                (*pt)->count--;
-                                break;
+                }else{
+                    fprintf(stdout,"Enter Partition to delete: ");
+                    scanf("%c", &name);
+                    getchar();
+                    for(int i = 0; i < (*pt)->count; i++){
+                        if((*pt)->partitions[i].name[0] == name){
+                            for(int j = i; j < (*pt)->count-1; j++){
+                                (*pt)->partitions[j] = (*pt)->partitions[j+1];
                             }
+                            (*pt)->count--;
+                            totalPartitions--;
+                            break;
                         }
                     }
-
                 }
                 break;
             case 's':
-                if(mode == 0){
-                    fprintf(stdout,"Enter Partition to select: ");
-                    char name;
-                    scanf("%c", &name);
-                    getchar();
-                    for(int i = 0; i < (*pt)->count; i++){
-                        if((*pt)->partitions[i].name[0] == name){
-                            currentPartition = i;
-                            break;
-                        }
+                fprintf(stdout,"Enter Partition to select: ");
+                scanf("%c", &name);
+                getchar();
+                for(int i = 0; i < (*pt)->count; i++){
+                    if((*pt)->partitions[i].name[0] == name){
+                        currentPartitionID = i;
+                        break;
                     }
-                    mode = 0;
                 }
                 break;
             case 'f':
-                if(mode == 1){
-                    fprintf(stdout,"Enter Partition to format: ");
-                    char name;
-                    scanf("%c", &name);
-                    getchar();
-                    for(int i = 0; i < (*pt)->count; i++){
-                        if((*pt)->partitions[i].name[0] == name){
-                            format(device, *pt, i);
-                            break;
+                fprintf(stdout,"Enter Partition to format: ");
+                scanf("%c", &name);
+                getchar();
+                for(int i = 0; i < (*pt)->count; i++){
+                    if((*pt)->partitions[i].name[0] == name){
+                        if((*pt)->partitions[i].formatted){
+                            fprintf(stderr,"Error: Partition already formatted\n");
+                        }else{
+                            (*pt)->partitions[i].formatted = true;
                         }
+                        break;
                     }
-                    mode = 0;
                 }
                 break;
             case 'q':
-                if(mode == 0){
+                for(int i = 0; i < (*pt)->count; i++){
+                    if(!(*pt)->partitions[i].formatted){
+                        fprintf(stderr,"Error: partition %s is not formatted\n", (*pt)->partitions[i].name);
+                        allFormatted = false;
+                    }
+                }
+                if(allFormatted){
+                    for(int i = 0; i < (*pt)->count; i++){
+                        format(device, (*pt)->partitions[i]);
+                    }
                     return;
                 }
+                allFormatted = true;
+                break;
             default:
                 fprintf(stderr,"Invalid option\n");
         }
     }
     
+}
+void dumpPartitionHeader(){
+    fprintf(stdout,"Partition Header\n");
+    fprintf(stdout,"Magic: %s\n", header.magic);
+    fprintf(stdout,"Name: %s\n", header.name);
+    fprintf(stdout,"Version: %d\n", header.version);
+    fprintf(stdout,"Count: %d\n", header.count);
+    fprintf(stdout,"Size: %d\n", header.size);
+}
+void dumpPartitionTable(PartitionTable* pt)
+{
+    dumpPartitionHeader();
+    fprintf(stdout,"Partition Table\n");
+    fprintf(stdout,"Name        Addr  -  End      Size\n");
+    for(int i = 0; i < pt->count; i++){
+        fprintf(stdout,"%s      0x%.5x  0x%.5x    %d   \n", pt->partitions[i].name, pt->partitions[i].addr,pt->partitions[i].addr+pt->partitions[i].size, pt->partitions[i].size);
+    }
 }

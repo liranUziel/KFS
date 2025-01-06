@@ -3,6 +3,10 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <assert.h>
+#include "./Headers/KFS.h"
 
 
 //List of commands
@@ -19,5 +23,6 @@ void printHelp();
 void printKFSLogo();
 void printPizzaLogo();
 void dispatch(char *cmd);
+void touch(char* path);
 
 #endif // TERMINAL_H

@@ -2,7 +2,7 @@
 #define PARTITION_H
 
 #include "BlockDevice.h"
-
+#include <stdbool.h>
 typedef struct _Partition_header{
     char magic[5];
     char name[8];
@@ -15,6 +15,7 @@ typedef struct _Partition_header{
 typedef struct _Partition{
     unsigned int addr;
     unsigned int size;
+    bool formatted;
     char name[2]; 
 }Partition;
 
@@ -28,18 +29,19 @@ typedef struct _PartitionTable{
 // extern const struct PartitionTable ptTable;
 
 
-extern int currentPartition;
+extern int currentPartitionID;
 void createPartitionTable(PartitionTable** pt, int size);
 void addPartition(PartitionTable** pt,unsigned int size);
 void writePartitionTable(BlockDevice* device, PartitionTable* pt);
 void readPartitionTable(BlockDevice* device, PartitionTable** pt);
 
 
-void format(BlockDevice *device, PartitionTable* pt,unsigned int partitionIndex);
+
 
 void PizzaPartitionSystem(PartitionTable **pt, BlockDevice *device);
-
 void printPartitionTable(PartitionTable* pt);
 
+void dumpPartitionHeader();
+void dumpPartitionTable(PartitionTable* pt);
 
 #endif // PARTITION_H

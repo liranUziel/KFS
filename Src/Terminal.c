@@ -4,7 +4,8 @@
 
 const char *CMD_STR[] = {
     "exit",
-    "help"
+    "help",
+    "touch",
 };
 
 void printKFSLogo(){
@@ -64,6 +65,14 @@ void printHelp(){
 void dispatch(char *cmd){
     if(strcmp(cmd, CMD_STR[CMD_HELP]) == 0){
         printHelp();
+    }
+    else if(strcmp(cmd, CMD_STR[CMD_EXIT]) == 0){
+        printf("Exiting...\n");
+    }
+    else if(strcmp(cmd, "touch") == 0){
+        touch("test");
+    } else if(strcmp(cmd,"edit") == 0){
+        assert(false && "This command not implemented");
     }
     else{
         printf("Unknown command\n");

@@ -8,6 +8,8 @@
 #include <windows.h>    
 
 #define BLOCK_SIZE 1024*1024
+
+
 typedef enum {
     FILE_WRITE_SUCCESS = 1,
     FILE_READ_SUCCESS = 2,

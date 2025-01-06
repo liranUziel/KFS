@@ -1,1 +1,1 @@
-gcc -ggdb -o Build\main.exe Src\main.c Src\KFS.c Src\Partition.c Src\Terminal.c Src\BlockDevice.c
+gcc -ggdb -o Build\main.exe Src\main.c Src\KFS.c Src\Partition.c Src\Terminal.c Src\BlockDevice.c Src\ANSI_Terminal.c Src\Table.c

@@ -4,6 +4,10 @@
 #include "BlockDevice.h"
 #include "Partition.h"
 
+BlockDevice blockDevice;
+
+#define PAGE_SIZE 256
+#define KFS_TABLE_SIZE 10
 
 // defiune a struct that represent the file system.
 // with a magic number and a version number.
@@ -23,15 +27,33 @@ typedef struct _KFS_Entry
     unsigned int size;
 } KFS_Entry;
 
-
-typedef struct _KFS_directory
+typedef struct _KFS_directory_entry
 {
     unsigned short inode;
     char name[8];
-    unsigned short parent;
+} KFS_directory_entry;
+typedef struct _KFS_directory
+{
+    int count;
+    KFS_directory_entry entries[KFS_TABLE_SIZE];
 } KFS_directory;
 
+
+
+
+// CMD
+void createFile(char* path);
+
+KFS_directory readDirectory(unsigned short inode);
+void writeDirectory(unsigned short inode, KFS_directory* dir);
+void loadKFS(BlockDevice *device, Partition partition);
+
 void buildKFSTable(unsigned int partitionStart);
-void format(BlockDevice *device, PartitionTable* pt,unsigned int partitionIndex);
+void format(BlockDevice *device, Partition partition);
+void initializeKFS(Partition partition);
+
+
+void dumpKFSHeader();
+void dumpKFS();
 
 #endif // KFS_H

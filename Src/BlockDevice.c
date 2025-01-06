@@ -46,7 +46,10 @@ FILE_IO_STATUS writeBlockDevice(BlockDevice *device, int addr, int size, char *a
         fprintf(stderr, "Error: write address out of bounds\n");
         return FILE_IO_ERROR;
     }
-    memcpy(device->data + addr, ans, size); // Corrected size calculation
+    memcpy(device->data + addr, ans, size);
+    #ifdef DEBUG 
+    printf("[writeBlockDevice]: Address: %d, Size: %d, Content: %.*s\n", addr, size, size, ans);
+    #endif
     return FILE_WRITE_SUCCESS;
 }
 
@@ -60,7 +63,10 @@ FILE_IO_STATUS readBlockDevice(BlockDevice *device, int addr, int size, char *an
         fprintf(stderr, "Error: read address out of bounds\n");
         return FILE_IO_ERROR;
     }
-    memcpy(ans, device->data + addr, size); // Corrected size calculation
+    memcpy(ans, device->data + addr, size);
+    #ifdef DEBUG
+    printf("[readBlockDevice]: Address: %d, Size: %d, Content: %.*s\n", addr, size, size, ans);
+    #endif
     return FILE_READ_SUCCESS;
 }
 
