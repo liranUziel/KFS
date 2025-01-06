@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
-#include "./Headers/KFS.h"
+#include "KFS.h"
 
 
 //List of commands

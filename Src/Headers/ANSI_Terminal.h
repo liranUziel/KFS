@@ -26,11 +26,15 @@ typedef enum _ORIENTATION_V{
     MIDDLE
 }POSITION_V;
 
+typedef enum _DIRECTION{
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT
+}DIRECTION;
 
-
-
-#define UP_ARROW 65
-#define DOWN_ARROW 66
+#define UP_ARROW 72
+#define DOWN_ARROW 80
 #define RIGHT_ARROW 67
 #define LEFT_ARROW 68
 
@@ -56,8 +60,13 @@ void clearScreen();
 void fillScreen(int color);
 void printMenu();
 void keyPressHandler(int key);
+void fillLineChar(char c, int color, int line);
+void hightlightOn(int color);
+void hightlightOff();
+void printTextInLine(char* text, int color, int line);
 void printText(char* text, int color,POSITION_H hposOffset,POSITION_V vposOffset );
-
+void deletePrevChar(int n);
+void moveCurer(DIRECTION dir);
 
 
 

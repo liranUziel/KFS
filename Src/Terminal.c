@@ -70,7 +70,7 @@ void dispatch(char *cmd){
         printf("Exiting...\n");
     }
     else if(strcmp(cmd, "touch") == 0){
-        touch("test");
+        // touch("test");
     } else if(strcmp(cmd,"edit") == 0){
         assert(false && "This command not implemented");
     }

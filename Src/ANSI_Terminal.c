@@ -33,7 +33,18 @@ void getConsoleSize(int* x, int* y){
     }
 
 }
-
+void hideCursor(){
+    CONSOLE_CURSOR_INFO info;
+    info.dwSize = 100;
+    info.bVisible = FALSE;
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
+}
+void showCursor(){
+    CONSOLE_CURSOR_INFO info;
+    info.dwSize = 100;
+    info.bVisible = TRUE;
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
+}
 #endif // _WIN32
 
 #ifdef __linux__
@@ -55,7 +66,8 @@ void disableRowModeL(){
 
 #endif // __linux__
 
-
+int selectedRow = 1;
+int totalRows = 2;
 
 void clearScreen(){
     printf("\033[2J");
@@ -150,29 +162,76 @@ void keyPressHandler(int key){
     {
     case UP_ARROW:
         // change the selected row
+        if(selectedRow > 1){
+            selectedRow--;
+            printTextInLine("\t\t[*]", 15, 2);
+            printTextInLine("\t\t[ ]", 15, 3);
+        }
         break;
     case DOWN_ARROW:
         // change the selected row
+        if(selectedRow < totalRows){
+            selectedRow++;
+            printTextInLine("\t\t[ ]", 15, 2);
+            printTextInLine("\t\t[*]", 15, 3);
+        }
         break;
     case KEY_C:
         // create a new partition
+        break;
+    case KEY_ENTER:
+        // select the current row
         break;
     default:
         break;
     }
 }
 
+void hightlightOn(int color){
+    printf("\033[48;5;%dm", color);
+}
+void hightlightOff(){
+    printf("\033[0m");
+}
+void printTextInLine(char* text, int color, int line){
+    int x, y;
+    getCursorPosition(&x, &y);
+    moveCursor(0, line);
+    printf("\033[38;5;%dm%s", color, text);
+    moveCursor(x, y);
+}
+void fillLineChar(char c, int color, int line){
+    int x, y;
+    getCursorPosition(&x, &y);
+    moveCursor(0, line);
+    printf("\033[48;5;%dm", color);
+    int w, h;
+    getConsoleSize(&w, &h);
+    for(int i = 0; i < w; i++){
+        printf("%c", c);
+    }
+    moveCursor(x, y);
+}
 void printMenu(){
     // clearScreen();
     //build a blue screen
     fillScreen(4);
+    hightlightOn(15);
+    fillLineChar(' ', 15, 0);
     printText("PiPS", 15, CENTER, TOP);
-    printText("Pizza Partition Center", 15, CENTER,-1);
+    printText("Pizza Partition Center 🍕", 15, CENTER,-1);
+    hightlightOn(4);
+    printTextInLine("\t\t[*] C ", 15, 2);
+    printTextInLine("\t\t[ ] D ", 15, 3);
+    hightlightOn(15);
     printText(" Create Partition",15,LEFT,BOTTOM);
+    hightlightOn(4);
+    hideCursor();
     enableRowModeW();
     while(1){
         if(kbhit()){
             int key = getch();
+            // printf("key: %d\n", key);
             if(key == 113){
                 break;
             }
@@ -181,6 +240,8 @@ void printMenu(){
     }
     resetColor();
     resetScreen();
+    disableRowModeW();
+    showCursor();
 }
 
 
