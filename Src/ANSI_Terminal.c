@@ -67,17 +67,111 @@ void disableRowModeL(){
 #endif // __linux__
 
 int selectedRow = 1;
-int totalRows = 2;
+int totalRows = 0;
+STATE state = IDLE;
+char partitionNames[256] = {0};
+int partitionSizes[256] = {0};
+int maxRows = 10;
+
+MenuBar createMenuBar(POSITION_H hposOffset, POSITION_V vposOffset, int verticalOffet, int fg_color, int bg_color){
+    MenuBar menuBar;
+    menuBar.items = (MenuItem*)malloc(sizeof(MenuItem));
+    menuBar.totalItems = 0;
+    menuBar.size = 1;
+    menuBar.hposOffset = hposOffset;
+    menuBar.vposOffset = vposOffset;
+    menuBar.verticalOffet = verticalOffet;
+    menuBar.fg_color = fg_color;
+    menuBar.bg_color = bg_color;
+    return menuBar;
+}
+
+MenuItem createMenuItem(char* text, int fg_color, int bg_color, int selected){
+    MenuItem item;
+    item.text = text;
+    item.fg_color = fg_color;
+    item.bg_color = bg_color;
+    item.selected = selected;
+    return item;
+}
+
+void addMenuItem(MenuBar* menuBar, MenuItem item){
+    if(menuBar->totalItems == menuBar->size){
+        menuBar->size *= 2;
+        menuBar->items = (MenuItem*)realloc(menuBar->items, menuBar->size * sizeof(MenuItem));
+    }else{
+        menuBar->items[menuBar->totalItems] = item;
+    }
+    menuBar->totalItems++;
+}
+
+void printMenuBar(MenuBar* menuBar){
+    
+    
+}
+
+void addPartiotnName(){
+    if(totalRows >= maxRows){
+        return;
+    }
+    char last = partitionNames[totalRows - 1];
+    partitionNames[totalRows] = last + 1;
+    totalRows++;
+}
+
+int stringToInt(char* str){
+    int result = 0;
+    for(int i = 0; i < strlen(str); i++){
+        result = result * 10 + (str[i] - '0');
+    }
+    return result;
+}
+
 
 void clearScreen(){
     printf("\033[2J");
     printf("\033[1;1H");
 }
+
+void clearLine(int line, int bg_color, int fg_color){
+    int x, y;
+    getCursorPosition(&x, &y);
+    moveCursor(0, line);
+    printf("\033[48;5;%dm", bg_color);
+    printf("\033[38;5;%dm", fg_color);
+    int w, h;
+    getConsoleSize(&w, &h);
+    for(int i = 0; i < w; i++){
+        printf(" ");
+    }
+    moveCursor(x, y);
+}
+
 void setBackGroundColor(int color){
     printf("\033[48;5;%dm", color);
 }
 void moveCursor(int x, int y){
     printf("\033[%d;%dH", y, x);
+}
+
+void moveCursorDiration(DIRECTION dir){
+    switch (dir)
+    {
+    case D_UP:
+        printf("\033[A");
+        break;
+    case D_DOWN:
+        printf("\033[B");
+        break;
+    case D_RIGHT:
+        printf("\033[C");
+        break;
+    case D_LEFT:
+        printf("\033[D");
+        break;
+    default:
+        break;
+    }
 }
 void fillScreen(int color){
     int x, y;
@@ -158,26 +252,76 @@ void printText(char* text, int color,POSITION_H hposOffset,POSITION_V vposOffset
 }
 
 void keyPressHandler(int key){
+    if(state == CREATE_PARTITION){
+        int lastLine;
+        int total = 0;
+        char digit;
+        if(key >= 48 && key <= 57){
+            digit = key;
+            printf("%c", digit);
+            total = total * 10 + (digit - '0');
+        }
+        if(key == KEY_ENTER){
+            partitionSizes[selectedRow - 1] = total;
+            state = IDLE;
+        }
+    }
     switch (key)
     {
     case UP_ARROW:
-        // change the selected row
-        if(selectedRow > 1){
-            selectedRow--;
-            printTextInLine("\t\t[*]", 15, 2);
-            printTextInLine("\t\t[ ]", 15, 3);
+        if(state == IDLE){
+            if(selectedRow > 1){
+                if(selectedRow - 1 >= 0){
+                    selectedRow--;
+                }
+                char text[256] = {0};
+                sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[selectedRow],0);
+                printTextInLine(text, 15, 2 + selectedRow + 1);
+                sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[selectedRow-1],0);
+                printTextInLine(text, 15, 2 + selectedRow);
+            }
+            break;
         }
-        break;
     case DOWN_ARROW:
-        // change the selected row
-        if(selectedRow < totalRows){
-            selectedRow++;
-            printTextInLine("\t\t[ ]", 15, 2);
-            printTextInLine("\t\t[*]", 15, 3);
-        }
-        break;
+        if(state == IDLE){
+            if(selectedRow < totalRows){
+                if(selectedRow + 1 <= totalRows){
+                    selectedRow++;
+                }
+                char text[256] = {0};
+                sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[selectedRow - 1],0);
+                printTextInLine(text, 15, 2 + selectedRow);
+                sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[selectedRow - 2],0);
+                printTextInLine(text, 15, 2 + selectedRow-1);
+            }
+            break;
+        }   
     case KEY_C:
-        // create a new partition
+        if(state == IDLE){
+            addPartiotnName();
+            for(size_t i = 0; i < totalRows; i++){
+                //Generate string "\t\t[ ] %c" where %c is the partition name in partitionNames[i]
+                char text[256] = {0};
+                sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[i],0);
+                printTextInLine(text, 15, 3 + i);
+            }
+            // apply the selected row *
+            char text[256] = {0};
+            sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[selectedRow - 1],0);
+            printTextInLine(text, 15, 2 + selectedRow);
+            int lastLine;
+            getConsoleSize(&lastLine, &lastLine);
+            clearLine(lastLine-1, 4, 15);
+            printText("\t\tEnter Patition size in Bytes: ",15,LEFT,BOTTOM);
+            int textLen = strlen("\t\tEnter Patition size in Bytes: ");
+            textLen += 14;
+            textLen += 1;
+            getConsoleSize(&lastLine, &lastLine);
+            moveCursor(textLen, lastLine-1);
+            state = CREATE_PARTITION;
+        }else{
+
+        }
         break;
     case KEY_ENTER:
         // select the current row
@@ -221,8 +365,16 @@ void printMenu(){
     printText("PiPS", 15, CENTER, TOP);
     printText("Pizza Partition Center 🍕", 15, CENTER,-1);
     hightlightOn(4);
-    printTextInLine("\t\t[*] C ", 15, 2);
-    printTextInLine("\t\t[ ] D ", 15, 3);
+    // read the partition table
+    partitionNames[totalRows] = 'C';
+    totalRows = 1;
+    printTextInLine("\t\t[*] C\t\t0", 15, 3);
+    for(size_t i = 1; i < totalRows; i++){
+        //Generate string "\t\t[ ] %c" where %c is the partition name in partitionNames[i]
+        char text[256] = {0};
+        sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[i],0);
+        printTextInLine(text, 15, 3 + i);
+    }
     hightlightOn(15);
     printText(" Create Partition",15,LEFT,BOTTOM);
     hightlightOn(4);
@@ -231,7 +383,6 @@ void printMenu(){
     while(1){
         if(kbhit()){
             int key = getch();
-            // printf("key: %d\n", key);
             if(key == 113){
                 break;
             }
