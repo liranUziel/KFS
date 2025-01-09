@@ -66,11 +66,18 @@ void disableRowModeL(){
 
 #endif // __linux__
 
+int TERMINAL_WIDTH = 0;
+int TERMINAL_HEIGHT = 0;
+
+
 int selectedRow = 1;
 int totalRows = 0;
+int seletedPartition = -1;
 STATE state = IDLE;
 char partitionNames[256] = {0};
 int partitionSizes[256] = {0};
+bool formated[256] = {false};
+int totalFormated = 0;
 int maxRows = 10;
 
 MenuBar createMenuBar(POSITION_H hposOffset, POSITION_V vposOffset, int verticalOffet, int fg_color, int bg_color){
@@ -114,9 +121,46 @@ void addPartiotnName(){
     if(totalRows >= maxRows){
         return;
     }
-    char last = partitionNames[totalRows - 1];
-    partitionNames[totalRows] = last + 1;
-    totalRows++;
+    if(totalRows == 0){
+        partitionNames[totalRows] = 'C';
+        seletedPartition = 0;
+        totalRows++;
+    }else{
+        char last = partitionNames[totalRows-1];
+        partitionNames[totalRows] = last + 1;
+        totalRows++;
+    }
+   return;
+}
+
+
+int getKeyPress(){
+    int key = -1;
+    #ifdef _WIN32
+    key = getch();
+    #endif
+    #ifdef __linux__
+    key = getchar();
+    #endif
+    return key;
+}
+
+void readNumber(char* numberBuffer, bool output) {
+    char ch;
+    bool reading = true;
+    while (reading) {
+        ch = getch();
+        if (ch >= '0' && ch <= '9') {
+            *numberBuffer++ = ch;
+            if (output) {
+                printf("%c", ch);
+            }
+        }
+        if(ch == KEY_ENTER){
+            reading = false;
+        }
+    }
+    *numberBuffer = '\0';
 }
 
 int stringToInt(char* str){
@@ -252,66 +296,82 @@ void printText(char* text, int color,POSITION_H hposOffset,POSITION_V vposOffset
 }
 
 void keyPressHandler(int key){
-    if(state == CREATE_PARTITION){
-        int lastLine;
-        int total = 0;
-        char digit;
+   
+    switch (state)
+    {
+    case CREATE_PARTITION:
+            //read number from the user
         if(key >= 48 && key <= 57){
-            digit = key;
-            printf("%c", digit);
-            total = total * 10 + (digit - '0');
-        }
-        if(key == KEY_ENTER){
-            partitionSizes[selectedRow - 1] = total;
+            printf("%c", key);
+            //read the rest of the number as string
+            char strInt[256] = {0};
+            strInt[0] = key;
+            readNumber(strInt+1,true);
+            int number = stringToInt(strInt);
+            partitionSizes[totalRows-1] = number;
+            //update the line
+            hightlightOn(4);
+            char text[256] = {0};
+            if(selectedRow - 1 == totalRows-1){
+                sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[totalRows - 1],partitionSizes[totalRows-1]);
+            }else{
+                sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[totalRows - 1],partitionSizes[totalRows-1]);
+            }
+            printTextInLine(text, 15, 2 + totalRows);
+            //clear the last line
+            int lastLine;
+            hightlightOn(15);
+            getConsoleSize(&lastLine, &lastLine);
+            clearLine(lastLine-1, 15, 4);
+            printBottomBar(15,4);
             state = IDLE;
         }
-    }
-    switch (key)
-    {
-    case UP_ARROW:
-        if(state == IDLE){
+        break;
+        if(key == KEY_ENTER){
+            
+        }
+        break;
+    case IDLE:
+        switch (key)
+        {
+        case UP_ARROW:
             if(selectedRow > 1){
                 if(selectedRow - 1 >= 0){
                     selectedRow--;
                 }
                 char text[256] = {0};
-                sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[selectedRow],0);
-                printTextInLine(text, 15, 2 + selectedRow + 1);
-                sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[selectedRow-1],0);
+                sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[selectedRow-1],partitionSizes[selectedRow-1]);
                 printTextInLine(text, 15, 2 + selectedRow);
+                sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[selectedRow],partitionSizes[selectedRow]);
+                printTextInLine(text, 15, 2 + selectedRow + 1);
             }
             break;
-        }
-    case DOWN_ARROW:
-        if(state == IDLE){
+        case DOWN_ARROW:
             if(selectedRow < totalRows){
                 if(selectedRow + 1 <= totalRows){
                     selectedRow++;
                 }
                 char text[256] = {0};
-                sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[selectedRow - 1],0);
-                printTextInLine(text, 15, 2 + selectedRow);
-                sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[selectedRow - 2],0);
+                sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[selectedRow - 2],partitionSizes[selectedRow-2]);
                 printTextInLine(text, 15, 2 + selectedRow-1);
+                sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[selectedRow - 1],partitionSizes[selectedRow-1]);
+                printTextInLine(text, 15, 2 + selectedRow);
             }
             break;
-        }   
-    case KEY_C:
-        if(state == IDLE){
+        case KEY_C:
             addPartiotnName();
             for(size_t i = 0; i < totalRows; i++){
-                //Generate string "\t\t[ ] %c" where %c is the partition name in partitionNames[i]
-                char text[256] = {0};
-                sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[i],0);
-                printTextInLine(text, 15, 3 + i);
+                if(i == selectedRow - 1){
+                    printPartitionLine(i, true);
+                }else{
+                    printPartitionLine(i, false);
+                }
             }
-            // apply the selected row *
-            char text[256] = {0};
-            sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[selectedRow - 1],0);
-            printTextInLine(text, 15, 2 + selectedRow);
             int lastLine;
             getConsoleSize(&lastLine, &lastLine);
             clearLine(lastLine-1, 4, 15);
+            hightlightOn(15);
+            fillLineChar(' ', 15, lastLine-1);
             printText("\t\tEnter Patition size in Bytes: ",15,LEFT,BOTTOM);
             int textLen = strlen("\t\tEnter Patition size in Bytes: ");
             textLen += 14;
@@ -319,12 +379,25 @@ void keyPressHandler(int key){
             getConsoleSize(&lastLine, &lastLine);
             moveCursor(textLen, lastLine-1);
             state = CREATE_PARTITION;
-        }else{
-
+            break;
+        case KEY_S:
+            break;  
+        case KEY_F:
+            // Mark the partition as formated
+            // redraw the parition wit  \t\t KFS at the end
+            if(!formated[selectedRow-1]){
+                formated[selectedRow-1] = true;
+                char text[256] = {0};
+                sprintf(text, "\t\t[*] %c\t\t%d\t\tKFS", partitionNames[selectedRow-1],partitionSizes[selectedRow-1]);
+                printTextInLine(text, 15, 2 + selectedRow);
+                totalFormated++;
+            }
+            break;
+        case KEY_ENTER:
+            break;
+        default:
+            break;
         }
-        break;
-    case KEY_ENTER:
-        // select the current row
         break;
     default:
         break;
@@ -356,6 +429,49 @@ void fillLineChar(char c, int color, int line){
     }
     moveCursor(x, y);
 }
+
+void printBoxMidScreen(char* text, int bg_color,int fg_color, int width, int height){
+    /* print box:
+    ╔═════════════════╗
+    ║      text       ║
+    ╚═════════════════╝    
+    will make sure text fit in the box with  padding of one \t 
+    at the mid of the screen
+     */
+    int x, y;
+    getConsoleSize(&x, &y);
+    int textLen = strlen(text);
+    int xoffset = (x - width) / 2;
+    int yoffset = (y - height) / 2;
+    moveCursor(xoffset, yoffset);
+    printf("\033[48;5;%dm", bg_color);
+    printf("\033[38;5;%dm", fg_color);
+    printf("╔");
+    for(int i = 0; i < width - 2; i++){
+        printf("═");
+    }
+    printf("╗");
+    moveCursor(xoffset, yoffset + 1);
+    printf("║");
+    for(int i = 0; i < (width - textLen - 2) / 2; i++){
+        printf(" ");
+    }
+    printf("%s", text);
+    for(int i = 0; i < (width - textLen - 2) / 2; i++){
+        printf(" ");
+    }
+    printf("║");
+    moveCursor(xoffset, yoffset + 2);
+    printf("╚");
+    for(int i = 0; i < width - 2; i++){
+        printf("═");
+    }
+    printf("╝");
+    moveCursor(xoffset, yoffset + 3);
+    printf("\033[0m");
+
+}
+
 void printMenu(){
     // clearScreen();
     //build a blue screen
@@ -363,28 +479,19 @@ void printMenu(){
     hightlightOn(15);
     fillLineChar(' ', 15, 0);
     printText("PiPS", 15, CENTER, TOP);
-    printText("Pizza Partition Center 🍕", 15, CENTER,-1);
+    printText("Pizza Partition Center", 15, CENTER,-2);
     hightlightOn(4);
-    // read the partition table
-    partitionNames[totalRows] = 'C';
-    totalRows = 1;
-    printTextInLine("\t\t[*] C\t\t0", 15, 3);
-    for(size_t i = 1; i < totalRows; i++){
-        //Generate string "\t\t[ ] %c" where %c is the partition name in partitionNames[i]
-        char text[256] = {0};
-        sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[i],0);
-        printTextInLine(text, 15, 3 + i);
-    }
-    hightlightOn(15);
-    printText(" Create Partition",15,LEFT,BOTTOM);
-    hightlightOn(4);
+    printBottomBar(15,4);
     hideCursor();
     enableRowModeW();
     while(1){
         if(kbhit()){
             int key = getch();
-            if(key == 113){
-                break;
+            if(key == KEY_Q){
+                
+                if(totalFormated == totalRows){
+                    break;
+                }
             }
             keyPressHandler(key);
         }
@@ -393,6 +500,31 @@ void printMenu(){
     resetScreen();
     disableRowModeW();
     showCursor();
+    dumpTerminalPartitionInfo();
+}
+
+// Private functions
+void printBottomBar(int highlightColor,int defaultColor){
+    hightlightOn(highlightColor);
+    fillLineChar(' ', highlightColor,BOTTOM);
+    printText(" Create Partition\tFormat Partition\tSelect Partition\tDelete Parition\tQuit",15,LEFT,BOTTOM);
+    hightlightOn(defaultColor);
 }
 
 
+void printPartitionLine(int index,bool checked){
+    char text[256] = {0};
+    if(checked){
+        sprintf(text, "\t\t[*] %c\t\t%d", partitionNames[index],partitionSizes[index]);
+    }else{
+        sprintf(text, "\t\t[ ] %c\t\t%d", partitionNames[index],partitionSizes[index]);
+    }
+    printTextInLine(text, 15, 3 + index);
+    return;
+}
+
+void dumpTerminalPartitionInfo(){
+    for(size_t i = 0; i < totalRows; i++){
+        printf("%c\t%d KFS\n", partitionNames[i], partitionSizes[i]);
+    }
+}

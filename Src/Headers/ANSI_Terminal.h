@@ -13,6 +13,7 @@
 #endif // __linux__
 
 #include <stdio.h>
+#include <stdbool.h>
 
 typedef enum _FORGROUND_COLOR{
     BLACK = 0,
@@ -86,9 +87,12 @@ typedef struct _MENU_BAR{
 #define RIGHT_ARROW 67
 #define LEFT_ARROW 68
 
-#define KEY_ENTER 10
+#define KEY_ENTER 13
 #define KEY_ESC 27
 #define KEY_C 99
+#define KEY_S 115
+#define KEY_F 102
+#define KEY_Q 113
 
 
 
@@ -125,7 +129,15 @@ void deletePrevChar(int n);
 void moveCursorDiration(DIRECTION dir);
 void moveCursor(int x, int y);
 
+int getKeyPress();
+void readNumber(char* numberBuffer,bool output);
+
 void addPartiotnName();
+
+
+void printBoxMidScreen(char* text, int bg_color,int fg_color, int width, int height);
+void saveTerminalBuffer();
+void restoreTerminalBuffer();
 
 
 #endif // ANSI_H
