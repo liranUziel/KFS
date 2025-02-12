@@ -5,6 +5,12 @@ Welcome to <strong>KFS, Krazy File System</strong>
 
 This is a tiny file system project based on the Linux file system, with some of my own interpretation and style. The project adds color and organization to the file system.
 
+## Build
+```cmd
+./build.bat
+```
+will put the .exe in Build folder
+
 ## Project Structure
 ```
 
