@@ -1,0 +1,180 @@
+Parition.c
+void PizzaPartitionSystem(PartitionTable **pt, BlockDevice *device){
+    fprintf(stdout,"\033[0m\033[1mP\033[22mizza \033[1mP\033[22martition \033[1mS\033[22mystem\033[0m\n");
+    fprintf(stdout,"Commands:\n");
+    fprintf(stdout,"c: Create a new partition\n");
+    fprintf(stdout,"d: Delete a partition\n");
+    fprintf(stdout,"s: Select a partition\n");
+    fprintf(stdout,"f: Format a partition\n");
+    fprintf(stdout,"q: Quit\n");
+    char option;
+    int mode = 0;
+    int totalPartitions = 0;
+    currentPartitionID = 0;
+    bool allFormatted = true;
+    char name;
+    while(1){
+        fprintf(stdout,"$> ");
+        scanf("%c", &option);
+        getchar();
+        switch(option){
+            case 'c':            
+                fprintf(stdout,"Enter the size of the partition: ");
+                int size;
+                scanf("%d", &size);
+                getchar();
+                addPartition(pt, size);
+                printPartitionTable(*pt);
+                totalPartitions++;
+                break;
+            case 'd':
+                if(totalPartitions < 2){
+                        fprintf(stderr,"Error: Cannot delete the last partition\n");
+                }else{
+                    fprintf(stdout,"Enter Partition to delete: ");
+                    scanf("%c", &name);
+                    getchar();
+                    for(int i = 0; i < (*pt)->count; i++){
+                        if((*pt)->partitions[i].name[0] == name){
+                            for(int j = i; j < (*pt)->count-1; j++){
+                                (*pt)->partitions[j] = (*pt)->partitions[j+1];
+                            }
+                            (*pt)->count--;
+                            totalPartitions--;
+                            break;
+                        }
+                    }
+                }
+                break;
+            case 's':
+                fprintf(stdout,"Enter Partition to select: ");
+                scanf("%c", &name);
+                getchar();
+                for(int i = 0; i < (*pt)->count; i++){
+                    if((*pt)->partitions[i].name[0] == name){
+                        currentPartitionID = i;
+                        break;
+                    }
+                }
+                break;
+            case 'f':
+                fprintf(stdout,"Enter Partition to format: ");
+                scanf("%c", &name);
+                getchar();
+                for(int i = 0; i < (*pt)->count; i++){
+                    if((*pt)->partitions[i].name[0] == name){
+                        if((*pt)->partitions[i].formatted){
+                            fprintf(stderr,"Error: Partition already formatted\n");
+                        }else{
+                            (*pt)->partitions[i].formatted = true;
+                        }
+                        break;
+                    }
+                }
+                break;
+            case 'q':
+                for(int i = 0; i < (*pt)->count; i++){
+                    if(!(*pt)->partitions[i].formatted){
+                        fprintf(stderr,"Error: partition %s is not formatted\n", (*pt)->partitions[i].name);
+                        allFormatted = false;
+                    }
+                }
+                if(allFormatted){
+                    for(int i = 0; i < (*pt)->count; i++){
+                        format(device, (*pt)->partitions[i]);
+                    }
+                    return;
+                }
+                allFormatted = true;
+                break;
+            default:
+                fprintf(stderr,"Invalid option\n");
+        }
+    }
+    
+}
+
+
+ size_t i, j;
+    int zeroLineCount = 0;
+    int printedZeroLines = 0;
+
+    // Print header
+    fprintf(stdout, "Address    | 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | ASCII\n");
+
+    for (i = 0; i < size; i += 16) {
+        int isZeroLine = 1;
+
+        // Check if the current line is all zeros
+        for (j = 0; j < 16 && i + j < size; j++) {
+            if (blockDevice[i + j] != 0) {
+                isZeroLine = 0;
+                break;
+            }
+        }
+
+        if (isZeroLine) {
+            zeroLineCount++;
+            if (zeroLineCount > 0) {
+                if (printedZeroLines < 2) {
+                    printf("0x%08zx|", i);
+                    for (j = 0; j < 16; j++) {
+                        printf("00 ");
+                    }
+                    printf(" |................|\n");
+                    printedZeroLines++;
+                }else{
+                     continue;   
+                }
+            }
+        } else {
+            zeroLineCount = 0;
+            printedZeroLines = 0;
+        }
+
+        // Print address
+        printf("0x%08zx| ", i);
+
+        // Print hex values
+        for (j = 0; j < 16; j++) {
+            if (i + j < size) {
+                // Check if the byte is part of the Partition_HEADER, KFS_HEADER, or KFS_TABLE
+                if (i + j < PARTITION_HEADER_SIZE) {
+                    printf(LIGHT_ORANGE "%02x" RESET_COLOR " ", blockDevice[i + j]);
+                } else if (i + j >= PARTITION_HEADER_SIZE && i + j < PARTITION_HEADER_SIZE + KFS_HEADER_SIZE) {
+                    printf(DARK_CYAN "%02x" RESET_COLOR " ", blockDevice[i + j]);
+                } else if (i + j >= PARTITION_HEADER_SIZE + KFS_HEADER_SIZE && i + j < PARTITION_HEADER_SIZE + KFS_HEADER_SIZE + KFS_TABLE_TOTAL_SIZE) {
+                    printf(CYAN "%02x" RESET_COLOR " ", blockDevice[i + j]);
+                } else {
+                    printf("%02x ", blockDevice[i + j]);
+                }
+            } else {
+                printf("   ");
+            }
+        }
+
+        // Print ASCII representation
+        printf(" |");
+        for (j = 0; j < 16; j++) {
+            if (i + j < size) {
+                unsigned char c = blockDevice[i + j];
+                if (isprint(c)) {
+                    // Check if the byte is part of the Partition_HEADER, KFS_HEADER, or KFS_TABLE
+                    if (i + j < PARTITION_HEADER_SIZE) {
+                        printf(LIGHT_ORANGE "%c" RESET_COLOR, c);
+                    } else if (i + j >= PARTITION_HEADER_SIZE && i + j < PARTITION_HEADER_SIZE + KFS_HEADER_SIZE) {
+                        printf(DARK_CYAN "%c" RESET_COLOR, c);
+                    } else if (i + j >= PARTITION_HEADER_SIZE + KFS_HEADER_SIZE && i + j < PARTITION_HEADER_SIZE + KFS_HEADER_SIZE + KFS_TABLE_TOTAL_SIZE) {
+                        printf(CYAN "%c" RESET_COLOR, c);
+                    } else {
+                        printf("%c", c);
+                    }
+                } else {
+                    printf(".");
+                }
+            } else {
+                printf(" ");
+            }
+        }
+        printf("|\n");
+    }

@@ -55,6 +55,8 @@
         "xlocale": "c",
         "xlocinfo": "c",
         "xstddef": "c",
-        "xtr1common": "c"
+        "xtr1common": "c",
+        "stdarg.h": "c",
+        "partitiongui.h": "c"
     }
 }

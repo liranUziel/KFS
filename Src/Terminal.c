@@ -1,13 +1,31 @@
+/**
+ * @file Terminal.c
+ * @author Liran Uziel (liran.uz.l@gmail.com)
+ * @brief This code manage the terminal for KFS for all the given commands
+ * @version 0.1
+ * @date 2025-02-12
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
+
 #include "./Headers/Terminal.h"
-
-
 
 const char *CMD_STR[] = {
     "exit",
     "help",
     "touch",
+    "ls",
+    "mkdir",
+    "find",
+    "cd",
+    "cat",
+    "edit",
 };
-
+/**
+ * @brief Print the KFS logo
+ * 
+ */
 void printKFSLogo(){
     printf("\033[0;31m");
     printf("        ,--.                       \n");
@@ -29,53 +47,95 @@ void printKFSLogo(){
     printf("\033[1m");
     printf("Krazy File System\n");
     printf("\033[0m");
-
-}
-void printPizzaLogo(){
-    //  print the LOGO PIPS in Orange to Yellow and the rest in white
-    //  first letters of Pizza Partition System in bold
-    /*  
-        8888888b.  d8b 8888888b.   .d8888b.  
-        888   Y88b Y8P 888   Y88b d88P  Y88b 
-        888    888     888    888 Y88b.      
-        888   d88P 888 888   d88P  "Y888b.   
-        8888888P"  888 8888888P"      "Y88b. 
-        888        888 888              "888 
-        888        888 888        Y88b  d88P 
-        888        888 888         "Y8888P"  
-                Pizza Partition System                            
-    */
-    printf("\033[38;2;255;140;0m8888888b.  d8b 8888888b.   .d8888b.  \n");
-    printf("\033[38;2;255;165;0m888   Y88b Y8P 888   Y88b d88P  Y88b \n");
-    printf("\033[38;2;255;190;0m888    888     888    888 Y88b.      \n");
-    printf("\033[38;2;255;215;0m888   d88P 888 888   d88P  \"Y888b.   \n");
-    printf("\033[38;2;255;240;0m8888888P\"  888 8888888P\"      \"Y88b. \n");
-    printf("\033[38;2;255;255;0m888        888 888              \"888 \n");
-    printf("\033[38;2;255;255;0m888        888 888        Y88b  d88P \n");
-    printf("\033[38;2;255;255;0m888        888 888         \"Y8888P\"  \n");
-    printf("\033[0m\033[1mP\033[22mizza \033[1mP\033[22martition \033[1mS\033[22mystem\033[0m\n");
 }
 
+/**
+ * @brief Print the Help menu for the terminal
+ * 
+ */
 void printHelp(){
     printf("List of commands:\n");
     printf("exit: Exit the terminal\n");
     printf("help: Print this help message\n");
+    printf("touch: Create a new file\n");
+    printf("mkdir: Create a new directory\n");
+    printf("ls: List files in the current directory\n");
+    printf("cd: Change directory\n");
+    printf("cat: Print the content of a file\n");
+    printf("edit: Edit a file\n");
+    printf("find: Find a directory\n");
 }
-
-void dispatch(char *cmd){
+/**
+ * @brief Execute the commands
+ * @algo
+ *  1. find if the command match any pattern
+ *  
+ * 
+ * Note: Some command can get arguments as well, for example touch, mkdir, cd, cat, edit
+ * To make sure the pattern is correct we need to check the first word of the command
+ * Using startWith function (from Ctring.c) we can check if the command start with the pattern
+ * @param cmd 
+ */
+void dispatch(char* cmd){
     if(strcmp(cmd, CMD_STR[CMD_HELP]) == 0){
         printHelp();
     }
-    else if(strcmp(cmd, CMD_STR[CMD_EXIT]) == 0){
-        printf("Exiting...\n");
-    }
-    else if(strcmp(cmd, "touch") == 0){
-        // touch("test");
-    } else if(strcmp(cmd,"edit") == 0){
-        assert(false && "This command not implemented");
-    }
-    else{
-        printf("Unknown command\n");
+    else if(startWith(cmd, CMD_STR[CMD_TOUCH])){
+        char *path = cmd + strlen(CMD_STR[CMD_TOUCH]) + 1;
+        createFile(path);     
+    } else if (startWith(cmd, CMD_STR[CMD_LS])){
+        char *path = cmd + strlen(CMD_STR[CMD_LS]) + 1;
+        listFile(path);
+    }else if (startWith(cmd, CMD_STR[CMD_MKDIR])){
+        char *path = cmd + strlen(CMD_STR[CMD_MKDIR]) + 1;
+        createFolder(path);
+    } else if (startWith(cmd, CMD_STR[CMD_FIND])){
+        char *path = cmd + strlen(CMD_STR[CMD_FIND]) + 1;
+        int inode = findDirectory(path);
+        if(inode == -1){
+            printf("Directory not found\n");
+        }else{
+            if(inode == 0){
+                printf("Directory found at root\n");
+            }else{
+                printFolderName(inode);
+            }
+        }
+    }else if(startWith(cmd,"edit")){
+        char *path = cmd + strlen("edit") + 1;
+        int inode = findPageInode(path);
+        if(inode == -1){
+            printf("Directory not found\n");
+        }else{
+            setPageContent(getPageAddress(inode),"Hello World");
+        }
+    }else if(startWith(cmd,"cd")){
+        char *path = cmd + strlen("cd") + 1;
+        if(validPath(path)){
+            changeDir(path);
+        }else{
+            printf("Invalid path\n");
+        }
+    }else if(startWith(cmd,"addr")){
+        char *path = cmd + strlen("addr") + 1;
+        int inode = findPageInode(path);
+        if(inode == -1){
+            printf("Directory not found\n");
+        }else{
+            printf("Content at %x\n",getPageAddress(inode));
+        }
+    } else if(startWith(cmd,"cat")){
+        char *path = cmd + strlen("cat") + 1;
+        if(validPath(path)){
+        }
+        int inode = findPageInode(path);
+        if(inode == -1){
+            printf("Directory not found\n");
+        }else{
+            printf("%s",getPageContent(getPageAddress(inode)));
+        }
+    }else{
+        printf("Unknown command use help to see all commands\n");
     }
 }
 

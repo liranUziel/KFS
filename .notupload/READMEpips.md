@@ -36,22 +36,8 @@ After building the project, you can run the application using the following comm
 ./build/KFS
 ```
 
-
-
-<img src="PiPS.png"><br>
-This project use <strong>PiPS, Pizza Partition Center</strong>
-
-A partition system.
-
-
-<img src="FeaNix.png"><br>
-This project use <strong>FeaNix</strong>
-
-A light weight rubust text editor.
-
 Contributing
 Contributions are welcome! Please read the CONTRIBUTING.md file for guidelines on how to contribute to this project.
-
 
 License
 This project is licensed under the MIT License - see the LICENSE file for details.

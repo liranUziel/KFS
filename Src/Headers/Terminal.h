@@ -7,12 +7,19 @@
 #include <stdbool.h>
 #include <assert.h>
 #include "KFS.h"
+#include "Ctring.h"
 
 
 //List of commands
 typedef enum CMD_TYPE{
     CMD_EXIT,
     CMD_HELP,
+    CMD_TOUCH,
+    CMD_LS,
+    CMD_MKDIR,
+    CMD_FIND,
+    CMD_CD,
+    CMD_ADDR,
     CMD_UNKNOWN
 }CMD_TYPE;
 
@@ -22,7 +29,7 @@ extern const char *CMD_STR[];
 void printHelp();
 void printKFSLogo();
 void printPizzaLogo();
-void dispatch(char *cmd);
-void touch(char* path);
+void dispatch(char* cmd);
+// void touch(char* path);
 
 #endif // TERMINAL_H
