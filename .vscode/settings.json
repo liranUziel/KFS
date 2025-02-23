@@ -57,6 +57,8 @@
         "xstddef": "c",
         "xtr1common": "c",
         "stdarg.h": "c",
-        "partitiongui.h": "c"
+        "partitiongui.h": "c",
+        "filetree.h": "c",
+        "string.h": "c"
     }
 }

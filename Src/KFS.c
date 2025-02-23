@@ -21,6 +21,9 @@ BlockDevice blockDevice;
 int FreeInodes[KFS_TABLE_SIZE] = {0};
 KFS_Table KFS_table;
 
+// Global variables
+FileNode* rootNode;
+
 unsigned int partitionStart = 0;
 Partition currentPartition;
 int currentDirectory;           
@@ -36,6 +39,42 @@ void initializeKFS(Partition partition){
     partitionStart = partition.addr;
     currentDirectory = 0;
     currentPath = "/";
+}
+
+
+void buildFileTree(KFS_directory root){
+    //Build file Tree and sub file tree.
+    rootNode = create_node("/", 0, 0);
+    for(size_t i = 2; i < root.count; i++){
+        FileNode* node = create_node(root.entries[i].name, root.entries[i].inode, 1);
+        add_child(rootNode, node, KFS_table[root.entries[i].inode].type);
+        if(KFS_table[root.entries[i].inode].type == 'd'){
+            KFS_directory dir = readDirectory(root.entries[i].inode);
+            buildSubTree(node, dir, root.entries[i].name);
+        }
+    }
+
+   
+}
+
+void buildSubTree(FileNode* node, KFS_directory dir,const char* path){
+    // Build sub tree
+    for(size_t i = 2; i < dir.count; i++){
+        FileNode* sub_node = create_node(dir.entries[i].name, dir.entries[i].inode, node->depth + 1);
+        add_child(node, sub_node, KFS_table[dir.entries[i].inode].type);
+        if(KFS_table[dir.entries[i].inode].type == 'd'){
+            KFS_directory sub_dir = readDirectory(dir.entries[i].inode);
+            buildSubTree(sub_node, sub_dir, dir.entries[i].name);
+        }
+    }
+
+}
+
+void printTree(void){
+    print_tree(rootNode,0,0);
+    #ifdef DEBUG
+        printTreeInfo(rootNode);
+    #endif
 }
 
 /**
@@ -59,6 +98,9 @@ KFS_Table KFSformatSystem(BlockDevice *device, PartitionTable* pt,int selectedPa
         if(i == selectedPartitionID){
             table = KFSformat(device, pt->partitions[i]);
             KFS_table = table;
+            KFS_directory root;
+            root = readDirectory(0);
+            buildFileTree(root);
         }else{
             KFSformat(device, pt->partitions[i]);
         }
@@ -352,23 +394,33 @@ char* getPageContent(int addr){
  * @details Find a free inode and assign it to the file
  */
 void createFile(char* path){
-    // check if the path is valid and the file does not exist
-       // if we get path that don't start with ./ we can concate ./ to the start of path then split it
-    if (path[0] != '/') {
-        char *temp = (char*)malloc(strlen(path) + 3);
-        strcpy(temp, "./");
-        strcat(temp, path);
-        path = temp;
+    char* subPath;
+    char* filename;
+    int slashIndex;
+    for(size_t i = 0; i < strlen(path); i++){
+        if(path[i] == '/'){
+            slashIndex = i;
+        }
     }
-    if(strlen(path) == 0){
-        fprintf(stderr, "Error: Invalid path\n");
+    subPath = (char*)malloc(slashIndex + 1);
+    filename = (char*)malloc(strlen(path) - slashIndex);
+
+    strncpy(filename, path + slashIndex + 1, strlen(path) - slashIndex);
+    filename[strlen(path) - slashIndex] = '\0';
+    strncpy(subPath, path, slashIndex);
+    subPath[slashIndex] = '\0';
+
+    FileNode* foundNode = searchByPath(rootNode, subPath);
+    if(foundNode == NULL){
+        fprintf(stderr, "Error: Directory not found\n");
         return;
     }
-    Path path_struct = splitPath(path);
-    if(!validPath(path)){
-        fprintf(stderr, "Error: Invalid path\n");
+    int inode = foundNode->inode;
+    if(inode == -2){
+        fprintf(stderr, "Error: Directory not found\n");
         return;
     }
+    
     int freeBlock = -1;
     for(size_t i = 0;i < KFS_TABLE_SIZE && freeBlock == -1; i++){
         if(FreeInodes[i] == 0){
@@ -382,35 +434,20 @@ void createFile(char* path){
         fprintf(stderr, "Error: No free inodes\n");
         return;
     }
-    int inode = findDirectory(path_struct.parts[path_struct.count-2].dir);
-    if(inode == -2){
-        fprintf(stderr, "Error: Directory not found\n");
-        return;
-    }
     KFS_directory dir = readDirectory(inode);
-    // printFolderName(inode);
     writeBlockDevice(&blockDevice, partitionStart + sizeof(KFS_HEADER), sizeof(KFS_Entry) * KFS_TABLE_SIZE, (char*)KFS_table);
     for(size_t i = dir.count; i < KFS_TABLE_SIZE; i++){
         if(dir.entries[i].inode == -2){
             dir.entries[i].inode = freeBlock;
-            strcpy(dir.entries[i].name, path_struct.parts[path_struct.count-1].dir);
+            dir.entries->inode = freeBlock;
+            strcpy(dir.entries[i].name, filename);
+            dir.count++;
             break;
         }
     }
-    dir.count++;
     writeDirectory(inode, &dir);
-
-    // KFS_directory root = readDirectory(0);
-    // for(size_t i = root.count; i < KFS_TABLE_SIZE; i++){
-    //     // printf("inode: %d\n", root.entries[i].inode);
-    //     if(root.entries[i].inode == -1 || root.entries[i].inode == 65535){
-    //         root.entries[i].inode = freeBlock;
-    //         strcpy(root.entries[i].name, path);
-    //         break;
-    //     }
-    // }
-    // root.count++;
-    // writeDirectory(0, &root);
+    FileNode* node = create_node(filename, freeBlock, 1);
+    add_child(foundNode, node, 'f');  
 }
 
 // MKDIR
@@ -471,6 +508,9 @@ void createFolder(char* path){
     sub_dir.entries[1].inode = 0;
     strcpy(sub_dir.entries[1].name, "..");
     writeDirectory(freeBlock, &sub_dir);
+    //update the rootNode
+    FileNode* node = create_node(path_struct.parts[path_struct.count-1].dir, freeBlock, 1);
+    add_child(rootNode, node,1);
 }
 
 // FIND
@@ -613,6 +653,10 @@ KFS_directory readDirectory(unsigned short inode){
         // fprintf(stderr, "Error: Invalid inode\n");
         return (KFS_directory){0};
     }
+    if(inode >= KFS_TABLE_SIZE){
+        fprintf(stderr, "Error: Invalid inode\n");
+        return (KFS_directory){0};
+    }
     if(KFS_table[inode].type != 'd'){
         // fprintf(stderr, "Error: Not a directory\n");
         return (KFS_directory){0};
@@ -657,6 +701,7 @@ KFS_Table readKFS(BlockDevice *device, Partition partition){
     //writeBlockDevice(&blockDevice, partitionStart + sizeof(KFS_HEADER), sizeof(KFS_Entry) * KFS_TABLE_SIZE, (char*)KFS_table);
     table = (KFS_Entry*)malloc(sizeof(KFS_Entry) * KFS_TABLE_SIZE);
     readBlockDevice(device, address, sizeof(KFS_Entry) * KFS_TABLE_SIZE, (char*)table);
+
     // dumpKFS(table);
     return table;
 }
@@ -673,6 +718,8 @@ void loadKFS(BlockDevice *device, Partition partition){
             FreeInodes[i] = 1;
         }
     }
+     // build FileTree for
+ 
     
 }
 

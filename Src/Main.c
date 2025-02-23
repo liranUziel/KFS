@@ -1,4 +1,4 @@
-#define DEBUG
+
 #include "./Headers/BlockDevice.h"
 #include "./Headers/Partition.h"
 #include "./Headers/KFS.h"

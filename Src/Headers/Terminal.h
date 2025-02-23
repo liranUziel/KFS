@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
+#include "FileTree.h"
 #include "KFS.h"
 #include "Ctring.h"
 

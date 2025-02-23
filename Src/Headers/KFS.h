@@ -4,6 +4,7 @@
 #include "BlockDevice.h"
 #include "Partition.h"
 #include "Helper.h"
+#include "FileTree.h"
 
 BlockDevice blockDevice;
 
@@ -84,7 +85,11 @@ KFS_Table KFSformat(BlockDevice *device, Partition partition);
 void initializeKFS(Partition partition);
 void readKFSHeader(BlockDevice *device, KFS_HEADER* kfs_header,unsigned int kfsIndex, unsigned int partitionOffset);
 void readKFSTable(BlockDevice *device, KFS_Table table, unsigned int kfsIndex, unsigned int partitionOffset);
-
+void buildFileTree(KFS_directory root);
+void buildSubTree(FileNode* node, KFS_directory dir,const char* path);
+void printTree(void);
+void printTreeInfo(FileNode* root);
+void printSubTreeInfo(FileNode* node);
 
 void dumpKFSHeader();
 void dumpKFS(KFS_Table table);

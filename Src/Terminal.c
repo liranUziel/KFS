@@ -21,6 +21,7 @@ const char *CMD_STR[] = {
     "cd",
     "cat",
     "edit",
+    "tree",
 };
 /**
  * @brief Print the KFS logo
@@ -134,7 +135,15 @@ void dispatch(char* cmd){
         }else{
             printf("%s",getPageContent(getPageAddress(inode)));
         }
-    }else{
+    }else if(startWith(cmd,"tree"))
+    {
+        printTree();
+        
+    } else if(strcmp(cmd, CMD_STR[CMD_EXIT]) == 0){
+        printf("Exiting terminal\n");
+        return;
+    }
+        else{
         printf("Unknown command use help to see all commands\n");
     }
 }
